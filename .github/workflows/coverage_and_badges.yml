@@ -1,0 +1,53 @@
+name: Coverage and badges
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Reason for running the job'
+        required: false
+        type: string
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Test Changed Files
+
+    steps:
+      - name: Checkout repo content
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          echo "pip install components"
+          pip install -r ./requirements.txt
+          pip install anybadge pytest coverage pytest-cov
+
+      - name: Coverage
+
+        run: |
+          coverage run -m pytest
+          coverage json
+          coverage html
+          python .github/gen_badges.py
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add coverage.svg
+          git add coverage.json
+          git commit  -m "Github Action add latest coverage svg"
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          branch: ${{ github.head_ref }}
+
+
